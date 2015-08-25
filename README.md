@@ -3,7 +3,7 @@ PScoreAssocUtil
 
 A java based helper utility for SCOREASSOC that generates simulated case control studies which can be used to evaluate the effects of various parameters on the statistical power of SCOREASSOC's ability to detect causal variants.
 
-
+......... a
 
 
 This is a command line utility that requires the following parameters:
