@@ -1,0 +1,130 @@
+// Copyright (c) 2015, Marton Kelemen
+// All rights reserved.
+
+// Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+// 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+// 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the 
+// documentation and/or other materials provided with the distribution.
+
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, 
+// THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR 
+// CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+// WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+// ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+package com.application.io;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.regex.Pattern;
+
+import com.application.utils.HelperMethods;
+
+/**
+ * Bridges between this java app and the PSCOREASSOC application
+ *
+ */
+public class PScoreAssocBridge {
+
+	// pscoreassoc.exe myOutput.dat --annotfile nod2.annot --weightfile nod2weights.txt --outfile scoreassocOutput.txt
+
+	public static String MIN_LOGP_IDENTIFIED = "SLP ="; // the bit in the pscoreassoc output that is just before the actualy -log(p) value 
+	
+	public static Double callPscoreAssoc(String pscoreAssocFileLocation, String genotypesDatFile, String annotationFile, String weightsFile)
+	{
+		// I. produce arguments in a string array that follows the following format:
+		// pscoreassoc.exe myOutput.dat --annotfile nod2.annot --weightfile nod2weights.txt
+		String[] arguments = new String[8];
+		arguments[0] = pscoreAssocFileLocation;
+		arguments[1] = genotypesDatFile;
+		arguments[2] = "--annotfile";
+		arguments[3] = annotationFile;
+		arguments[4] = "--weightfile";
+		arguments[5] = weightsFile;
+		arguments[6] = "--weightfactor"; // buggy
+		arguments[7] = "10";
+
+		// II. execute Pscoreassoc runtime
+	    Runtime runtime = Runtime.getRuntime(); // A Runtime object has methods for dealing with the OS
+	    Process process;     // Process tracks one external native process
+	    BufferedReader is;  // reader for output of process
+	    String line;
+	    Double minLogP = Double.NaN;
+	    try 
+	    { 
+	    	process = runtime.exec(arguments);  
+		    System.out.println("PSCOREASSOC exec");
+		    is = new BufferedReader(new InputStreamReader(process.getInputStream()));
+	    
+		    // III. parse output from ScoreAssoc
+		    boolean foundPvalue = false;
+		    while ((line = is.readLine()) != null && foundPvalue == false)
+		    {
+		    	//System.out.println(line);
+		    	// find the line that contains the logP value
+		    	if(line.contains(MIN_LOGP_IDENTIFIED) == true)
+		    	{	
+		    		// need to disable regex for this split: http://stackoverflow.com/questions/6374050/string-split-not-on-regular-expression
+		    		//String value = line.split(Pattern.quote(MIN_LOGP_IDENTIFIED))[1].split(" "); // -log(p) =     1.45
+		    		String value = line.split(Pattern.quote(MIN_LOGP_IDENTIFIED))[1].trim().split(" ")[0];
+		    		
+		    		minLogP = HelperMethods.tryParseDouble(value); // the actual value has some whitespace around it by that is .trim()-ed away
+		    		
+		    		System.out.println("minLogP: " + minLogP + " from: " + value + " Array contains " + Arrays.toString(line.split(MIN_LOGP_IDENTIFIED)));
+		    		foundPvalue = true;
+		    	}
+		    }
+		    
+		    // do I need to close this?
+		    is.close();
+		    
+		    System.out.println("PSCOREASSOC EOF");
+		    System.out.flush();
+		    
+		    // IV. wait until PScoreassoc exits
+		    try {
+		      process.waitFor();  // wait for process to complete
+		    } catch (InterruptedException e) { System.err.println(e);  return Double.NaN; }
+		    
+		    
+		    System.out.println("Process done, exit status was " + process.exitValue()); // dont use System.err, as that would break the bluster
+		    
+		    
+	    } catch (IOException e1) {e1.printStackTrace(); }
+
+
+
+		return minLogP;
+	}
+	
+
+	
+}
+
+
+/*
+
+try 
+{
+	String line;
+	Process process = Runtime.getRuntime().exec("tasklist.exe");
+	BufferedReader input = new BufferedReader(new InputStreamReader(process.getInputStream()));
+	
+	
+    while ((line = input.readLine()) != null) 
+    {
+        System.out.println(line); //<!-- Parse data here.
+    }
+    input.close();
+}
+
+catch(Exception e)
+{
+	System.out.println(e.getMessage());
+}
+*/

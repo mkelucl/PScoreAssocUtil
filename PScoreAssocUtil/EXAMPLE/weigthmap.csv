@@ -1,0 +1,14 @@
+start_lost,coding_sequence_variant,5_prime_UTR_variant,3_prime_UTR_variant,intron_variant	20
+downstream_gene_variant	1
+non_coding_transcript_exon_variant,intron_variant,non_coding_transcript_variant	1
+5_prime_UTR_variant	5
+synonymous_variant	3
+missense_variant	10
+splice_donor_variant	5
+intron_variant	3
+splice_region_variant	5
+stop_gained	20
+splice_acceptor_variant	5
+intron_variant,feature_elongation	3
+frameshift_variant	20
+3_prime_UTR_variant	5
